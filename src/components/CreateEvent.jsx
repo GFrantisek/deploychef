@@ -3,48 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import { Link } from 'react-router-dom';
 
-//I used mock database so it will be easier to integrate it with backend later on
-const mockDatabase = {
-    recipes: [
-        {
-            id: 1,
-            name: "Fluffy Pancakes",
-            image: "/src/assets/pancakes.png",
-            description: "Cooked 3x • Avg Time: 45 min",
-        },
-        {
-            id: 2,
-            name: "Cheesy Pasta",
-            image: "/src/assets/pasta.jpg",
-            description: "Cooked 2x • Avg Time: 1h 45min",
-        },
-        {
-            id: 3,
-            name: "Chicken Salad",
-            image: "/src/assets/chickensalad.jpg",
-            description: "Cooked 1x • Avg Time: 25 min",
-        },
-        {
-            id: 4,
-            name: "Tomato Soup",
-            image: "/src/assets/tomatessoup.jpg",
-            description: "Cooked 4x • Avg Time: 30 min",
-        },
-        {
-            id: 5,
-            name: "Fried Chicken",
-            image: "/src/assets/friedchicken.jpg",
-            description: "Cooked 2x • Avg Time: 50 min",
-        },
-        {
-            id: 6,
-            name: "Fish bites",
-            image: "/src/assets/fishbites.jpg",
-            description: "Cooked 5x • Avg Time: 15 min",
-        },
-    ],
-};
-
 //These methods will create the event and push it to database
 export default function CreateEvent() {
     const [selectedRecipe, setSelectedRecipe] = useState(null);
@@ -57,6 +15,7 @@ export default function CreateEvent() {
     const [isEventCreated, setIsEventCreated] = useState(false);
     const [formError, setFormError] = useState(null);
     const navigate = useNavigate();
+    const [recipes, setRecipes] = useState([]);
 
     useEffect(() => {
         if (isEventCreated) {
@@ -67,6 +26,23 @@ export default function CreateEvent() {
             return () => clearTimeout(timer);
         }
     }, [isEventCreated, navigate]);
+
+    useEffect(() => {
+        const fetchRecipes = async () => {
+          try {
+            const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/recipes/");
+            if (!response.ok) {
+              throw new Error("Failed to fetch recipes");
+            }
+            const data = await response.json();
+            setRecipes(data);  // Aktualizácia stavu receptov
+          } catch (error) {
+            console.error("Error fetching recipes:", error);
+          }
+        };
+      
+        fetchRecipes();
+      }, []);
 
     const handleSelectRecipe = (id) => {
         setSelectedRecipe(id);
@@ -102,37 +78,54 @@ export default function CreateEvent() {
         return true;
     };
 
-    const handleCreateEvent = () => {
+    const handleCreateEvent = async () => {
         if (!validateForm()) {
-            return;
+          return;
         }
-
+      
+        const startTime = new Date(`1970-01-01T${eventDetails.timeRange.start}:00`);
+        const endTime = new Date(`1970-01-01T${eventDetails.timeRange.end}:00`);
+        const durationMs = endTime - startTime;
+      
+        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+        const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+        const duration = `${hours}:${minutes}:00`;
+      
         const eventData = {
-            recipeId: selectedRecipe,
-            ...eventDetails,
+          date: eventDetails.date,
+          max_attendees: parseInt(eventDetails.maxAttendees, 10),
+          registered_attendees: 0,
+          time_range: duration,
+          price: parseFloat(eventDetails.estimatedPrice),
+          recipe: selectedRecipe,
         };
-
-        // For local storage or state update
-        console.log('Event Data (local):', eventData);
-
-        // Uncomment the code below when integrating with the backend
-        // fetch('https://your-backend-api/events', {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify(eventData),
-        // })
-        // .then((response) => response.json())
-        // .then((data) => {
-        //     console.log('Event successfully saved to database:', data);
-        // })
-        // .catch((error) => {
-        //     console.error('Error saving event:', error);
-        // });
-
-        setIsEventCreated(true);
-    };
+      
+        try {
+          const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/create-event/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(eventData),
+          });
+      
+          if (!response.ok) {
+            const errorData = await response.json();
+            setFormError(`Error: ${errorData.details || "Something went wrong!"}`);
+            console.error("Error data:", errorData);
+            return;
+          }
+      
+          const result = await response.json();
+          console.log("Event created successfully:", result);
+      
+          setIsEventCreated(true);
+        } catch (error) {
+          console.error("Error creating event:", error);
+          setFormError("Failed to create the event!");
+        }
+      };      
+      
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -158,19 +151,23 @@ export default function CreateEvent() {
                             </Link>
                         </div>
                         <div className="grid grid-cols-2 gap-6 overflow-y-auto flex-1">
-                            {mockDatabase.recipes.map((recipe) => (
-                                <div
-                                    key={recipe.id}
-                                    className={`bg-white shadow-md rounded-lg p-4 border transition ${
-                                        selectedRecipe === recipe.id ? 'border-[#F4B18C] border-4' : 'hover:border-green-600'
-                                    }`}
-                                    onClick={() => handleSelectRecipe(recipe.id)}
-                                >
-                                    <img src={recipe.image} alt={recipe.name} className="rounded-lg mb-4 object-cover h-32 w-full" />
-                                    <h3 className="text-lg font-semibold text-green-700">{recipe.name}</h3>
-                                    <p className="text-gray-600 text-sm">{recipe.description}</p>
-                                </div>
-                            ))}
+                        {recipes.map((recipe) => (
+                            <div
+                            key={recipe.id}
+                            className={`bg-white shadow-md rounded-lg p-4 border transition ${
+                                selectedRecipe === recipe.id ? 'border-[#F4B18C] border-4' : 'hover:border-green-600'
+                            }`}
+                            onClick={() => handleSelectRecipe(recipe.id)}
+                            >
+                            <img
+                                src={recipe.image}
+                                alt={recipe.title}
+                                className="rounded-lg mb-4 object-cover h-32 w-full"
+                            />
+                            <h3 className="text-lg font-semibold text-green-700">{recipe.title}</h3>
+                            <p className="text-gray-600 text-sm">{recipe.description}</p>
+                            </div>
+                        ))}
                         </div>
                     </section>
 

@@ -27,7 +27,7 @@ export default function Register() {
     uploadData.append('password', password);
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/api/register/", {
+        const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/register/", {
             method: 'POST',
             body: uploadData
         });

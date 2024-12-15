@@ -1,55 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 
-// Mock database, we will then do this with real one
-const mockDatabase = {
-    events: [
-        {
-            id: 1,
-            title: "Fluffy pancakes",
-            organizer: "MonikaCooks",
-            attendees: "1",
-            maxpeople:"4",
-            cookingTime: "45 min",
-            date: "20.10.2024",
-            time: "18:00-20:00",
-            location: "Manželské internáty",
-            rating: 5,
-            reviews: 3,
-            image: "/src/assets/pancakes.png",
-        },
-        {
-            id: 2,
-            title: "Vegetable ragu",
-            organizer: "dominique321",
-            attendees: "2",
-            maxpeople:"3",
-            cookingTime: "1h 45min",
-            date: "20.10.2024",
-            time: "19:00-22:00",
-            location: "Štúrak",
-            rating: 4,
-            reviews: 1,
-            image: "/src/assets/ragu.jpg",
-        },
-        {
-            id: 3,
-            title: "Spinach rice bowl",
-            organizer: "martyn",
-            attendees: "1",
-            maxpeople:"2",
-            cookingTime: "55 min",
-            date: "20.10.2024",
-            time: "20:00-23:59",
-            location: "Átriáky",
-            rating: 4.5,
-            reviews: 6,
-            image: "/src/assets/ricebowl.jpg",
-        },
-    ],
-};
-
 export default function JoinEventPage() {
+    const [events, setEvents] = useState([]);
     const [filters, setFilters] = useState({
         search: '',
         date: '',
@@ -57,6 +10,30 @@ export default function JoinEventPage() {
         rating: 0,
         location: '',
     });
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+          try {
+            const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/events/");
+            if (!response.ok) {
+              throw new Error("Failed to fetch events");
+            }
+            const data = await response.json();
+      
+      
+            const currentDate = new Date().toISOString().split("T")[0];       
+            const upcomingEvents = data.filter((event) => {
+              return event.date >= currentDate;
+            });
+            
+            setEvents(upcomingEvents);
+          } catch (error) {
+            console.error("Error fetching events:", error);
+          }
+        };
+      
+        fetchEvents();
+      }, []);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -74,14 +51,27 @@ export default function JoinEventPage() {
             end.startsWith(targetTime));
     };
 
-    const filteredEvents = mockDatabase.events.filter((event) => {
-        const matchesSearch = event.title.toLowerCase().includes(filters.search.toLowerCase());
+    // const filteredEvents = events.filter((event) => {
+    //     const matchesSearch = event.recipe.title.toLowerCase().includes(filters.search.toLowerCase());
+    //     const matchesDate = !filters.date || event.date === filters.date;
+    //     const matchesTime = !filters.time || isTimeInRange(event.time_range, filters.time);
+    //     // const matchesRating = event.rating >= filters.rating;  // Pridajte, ak rating existuje
+    //     const matchesLocation = !filters.location || event.location === filters.location;
+      
+    //     return matchesSearch && matchesDate && matchesTime && matchesLocation; // && matchesRating 
+    //   });
+      
+
+    const filteredEvents = events.filter((event) => {
+        // Overenie, či `event.recipe` existuje pred volaním `toLowerCase()`
+        const matchesSearch = event.recipe?.title?.toLowerCase().includes(filters.search.toLowerCase()) || false;
         const matchesDate = !filters.date || event.date === filters.date;
-        const matchesTime = !filters.time || isTimeInRange(event.time, filters.time);
-        const matchesRating = event.rating >= filters.rating;
+        const matchesTime = !filters.time || isTimeInRange(event.time_range, filters.time);
         const matchesLocation = !filters.location || event.location === filters.location;
-        return matchesSearch && matchesDate && matchesTime && matchesRating && matchesLocation;
+    
+        return matchesSearch && matchesDate && matchesTime && matchesLocation;
     });
+    
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -146,44 +136,40 @@ export default function JoinEventPage() {
                 <div className="grid grid-cols-3 gap-3">
                     {filteredEvents.map((event) => (
                         <div key={event.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
-                            <img
-                                src={event.image}
-                                alt={event.title}
-                                className="rounded-lg object-cover h-40 w-full mb-4"
-                            />
-                            <h2 className="text-lg font-semibold" style={{ color: '#3D9879' }}>{event.title}</h2>
-                            <p className="text-sm text-gray-500">{event.organizer}</p>
-                            <p className="text-sm text-gray-500">
-                                Cooking Time: {event.cookingTime}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                {event.date} | {event.time}
-                            </p>
-                            <p className="text-sm text-gray-500">{event.location}</p>
-                            <p className="text-sm text-gray-500">{event.attendees}/{event.maxpeople} attendees</p>
-                            <div className="flex items-center justify-between mt-4">
-                                <span className="text-yellow-500">
-                                    {Array.from({ length: Math.floor(event.rating) }, (_, i) => (
-                                        <span key={i}>&#9733;</span>
-                                    ))}
-                                    {event.rating % 1 ? <span>&#9733;</span> : ''}
-                                    ({event.reviews} reviews)
-                                </span>
-                                <button className="text-sm font-semibold underline" style={{ color: '#3D9879' }}>
-                                    See Reviews
-                                </button>
-                            </div>
-                            <div className="flex mt-4 gap-4">
-                                <button className="flex-1 bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300" style={{ color: '#3D9879' }}>
-                                    More info
-                                </button>
-                                <button className="flex-1 font-semibold py-2 px-4 rounded-lg hover:bg-green-600" style={{ backgroundColor: '#3D9879', color: 'white' }}>
-                                    Join
-                                </button>
-                            </div>
+                        <img
+                            src={event.recipe.image}
+                            alt={event.recipe.title}
+                            className="rounded-lg object-cover h-40 w-full mb-4"
+                        />
+                        <h2 className="text-lg font-semibold" style={{ color: '#3D9879' }}>
+                            {event.recipe.title}
+                        </h2>
+                        <p className="text-sm text-gray-500">{event.recipe.description}</p>
+                        <p className="text-sm text-gray-500">
+                            Date: {event.date} | Duration: {event.time_range}
+                        </p>
+                        <p className="text-sm text-gray-500">Max Attendees: {event.max_attendees}</p>
+                        <p className="text-sm text-gray-500">Registered: {event.registered_attendees}</p>
+
+                        <div className="flex mt-4 gap-4">
+                            <button
+                            className="flex-1 bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300"
+                            style={{ color: '#3D9879' }}
+                            >
+                            More Info
+                            </button>
+                            <button
+                            className="flex-1 font-semibold py-2 px-4 rounded-lg hover:bg-green-600"
+                            style={{ backgroundColor: '#3D9879', color: 'white' }}
+                            >
+                            Join
+                            </button>
+                        </div>
                         </div>
                     ))}
                 </div>
+
+
             </main>
         </div>
     );
