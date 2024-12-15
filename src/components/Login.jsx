@@ -37,7 +37,7 @@ export default function Login() {
     const uploadData = new FormData();
     uploadData.append('username', name);
     uploadData.append('password', password);
-    fetch("https://finalwork-1093442293034.europe-central2.run.app/api/authenticate/", {
+    fetch("https://finalwork-1093442293034.europe-central2.run.app/authenticate/", {
         method: 'POST',
         body: uploadData
     })

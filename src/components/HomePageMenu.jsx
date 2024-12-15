@@ -28,7 +28,7 @@ const [userName] = useSelector((state) => [state.global.name], shallowEqual);
                     >
                         <div className="text-center">
                             <img
-                                src="/src/assets/chef.png"
+                                src="/assets/chef.png"
                                 alt="Create"
                                 className="mb-4 h-56"
                             />
@@ -45,7 +45,7 @@ const [userName] = useSelector((state) => [state.global.name], shallowEqual);
                     >
                         <div className="text-center">
                             <img
-                                src="/src/assets/cooking.png"
+                                src="/assets/cooking.png"
                                 alt="Join"
                                 className="mb-4 h-56"
                             />
