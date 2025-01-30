@@ -1,176 +1,317 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector, shallowEqual } from 'react-redux';
 import Navbar from './Navbar';
+import Alert from './Alert';
+import Success from './Success';
+
+function EventDetailsModal({ event, onClose }) {
+  const [joinedUsernames, setJoinedUsernames] = useState([]);
+
+  useEffect(() => {
+    const fetchUsernames = async () => {
+      try {
+        const response = await fetch('https://finalwork-1093442293034.europe-central2.run.appapi/users/');
+        if (!response.ok) throw new Error('Failed to fetch usernames');
+        const users = await response.json();
+
+        const usernames = event.joined_users.map(
+          (userId) => users.find((user) => user.id === userId)?.username || `User ${userId}`
+        );
+
+        setJoinedUsernames(usernames);
+      } catch (error) {
+        console.error('Error fetching usernames:', error);
+      }
+    };
+
+    fetchUsernames();
+  }, [event]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  if (!event) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white w-3/4 max-w-4xl p-6 rounded-lg shadow-lg relative">
+        <button
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        <h2 className="text-2xl font-bold text-green-700 mb-4">Event Details</h2>
+        <img
+          src={event.recipe.image || 'https://via.placeholder.com/150'}
+          alt={event.recipe.title}
+          className="w-full h-64 object-cover rounded-lg mb-4"
+        />
+        <h3 className="text-xl font-semibold text-green-800">{event.recipe.title}</h3>
+        <p className="text-gray-700 mb-2">{event.recipe.description}</p>
+        <p className="text-gray-600 mb-4">{event.recipe.secondary_description}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-700">📅 Date:</p>
+            <p className="text-lg text-gray-800">{event.date}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">⏳ Duration:</p>
+            <p className="text-lg text-gray-800">{event.time_range}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">👥 Max Attendees:</p>
+            <p className="text-lg text-gray-800">{event.max_attendees}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">💵 Price:</p>
+            <p className="text-lg text-gray-800">€{event.price}</p>
+          </div>
+        </div>
+        <div className="mt-6">
+          <h4 className="text-lg font-medium text-green-700">Ingredients:</h4>
+          <ul className="list-disc list-inside text-gray-800">
+            {event.recipe.ingredients.map((ingredient) => (
+              <li key={ingredient.id}>{ingredient.name}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-6">
+          <h4 className="text-lg font-medium text-green-700">Joined Users:</h4>
+          <p className="text-gray-800">
+            {joinedUsernames.length > 0 ? joinedUsernames.join(', ') : 'No users have joined yet.'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function JoinEventPage() {
-    const [events, setEvents] = useState([]);
-    const [filters, setFilters] = useState({
-        search: '',
-        date: '',
-        time: '',
-        rating: 0,
-        location: '',
-    });
+  const [isLoggedIn] = useSelector((state) => [state.global.isLoggedIn], shallowEqual);
+  const [userName] = useSelector((state) => [state.global.name], shallowEqual);
+  const [userId] = useSelector((state) => [state.global.userId], shallowEqual);
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-          try {
-            const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/events/");
-            if (!response.ok) {
-              throw new Error("Failed to fetch events");
-            }
-            const data = await response.json();
-      
-      
-            const currentDate = new Date().toISOString().split("T")[0];       
-            const upcomingEvents = data.filter((event) => {
-              return event.date >= currentDate;
-            });
-            
-            setEvents(upcomingEvents);
-          } catch (error) {
-            console.error("Error fetching events:", error);
-          }
-        };
-      
-        fetchEvents();
-      }, []);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [error, setError] = useState(null);
 
-    const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters((prevFilters) => ({
-            ...prevFilters,
-            [name]: name === 'rating' ? parseInt(value) : value,
-        }));
+  const [events, setEvents] = useState([]);
+  const [filters, setFilters] = useState({
+    search: '',
+    date: ''
+  });
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('https://finalwork-1093442293034.europe-central2.run.appapi/events/');
+        if (!response.ok) {
+          throw new Error('Failed to fetch events');
+        }
+        const data = await response.json();
+        const currentDate = new Date().toISOString().split('T')[0];
+        const upcomingEvents = data.filter((event) => event.date >= currentDate);
+        setEvents(upcomingEvents);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
     };
 
-    const isTimeInRange = (timeRange, targetTime) => {
-        const [start, end] = timeRange.split('-');
-        return (!targetTime ||
-            (targetTime >= start && targetTime <= end) ||
-            start.startsWith(targetTime) ||
-            end.startsWith(targetTime));
-    };
+    fetchEvents();
+  }, []);
 
-    // const filteredEvents = events.filter((event) => {
-    //     const matchesSearch = event.recipe.title.toLowerCase().includes(filters.search.toLowerCase());
-    //     const matchesDate = !filters.date || event.date === filters.date;
-    //     const matchesTime = !filters.time || isTimeInRange(event.time_range, filters.time);
-    //     // const matchesRating = event.rating >= filters.rating;  // Pridajte, ak rating existuje
-    //     const matchesLocation = !filters.location || event.location === filters.location;
-      
-    //     return matchesSearch && matchesDate && matchesTime && matchesLocation; // && matchesRating 
-    //   });
-      
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      [name]: value,
+    }));
+  };
 
-    const filteredEvents = events.filter((event) => {
-        // Overenie, či `event.recipe` existuje pred volaním `toLowerCase()`
-        const matchesSearch = event.recipe?.title?.toLowerCase().includes(filters.search.toLowerCase()) || false;
-        const matchesDate = !filters.date || event.date === filters.date;
-        const matchesTime = !filters.time || isTimeInRange(event.time_range, filters.time);
-        const matchesLocation = !filters.location || event.location === filters.location;
-    
-        return matchesSearch && matchesDate && matchesTime && matchesLocation;
-    });
-    
+  const handleClearFilters = () => {
+    setFilters({ search: '', date: '' });
+  };
 
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <Navbar />
-            <main className="max-w-7xl mx-auto px-6 py-8" style={{ paddingTop: '72px' }}>
-                <h1 className="text-3xl font-bold text-center" style={{ color: '#3D9879' }}>Find an Event to Join</h1>
-                {/* Filter Section */}
-                <div className="bg-white shadow-md rounded-lg p-2 mb-8">
-                    <div className="grid grid-cols-4 gap-4">
-                        <input
-                            type="text"
-                            name="search"
-                            value={filters.search}
-                            onChange={handleFilterChange}
-                            placeholder="Search"
-                            className="border border-gray-300 rounded-md p-3 focus:ring-green-500 focus:border-green-500"
-                        />
-                        <input
-                            type="date"
-                            name="date"
-                            value={filters.date}
-                            onChange={handleFilterChange}
-                            className="border border-gray-300 rounded-md p-3 focus:ring-green-500 focus:border-green-500"
-                        />
-                        <input
-                            type="time"
-                            name="time"
-                            value={filters.time}
-                            onChange={handleFilterChange}
-                            className="border border-gray-300 rounded-md p-3 focus:ring-green-500 focus:border-green-500"
-                        />
-                        <select
-                            name="location"
-                            value={filters.location}
-                            onChange={handleFilterChange}
-                            className="border border-gray-300 rounded-md p-3 focus:ring-green-500 focus:border-green-500"
-                        >
-                            <option value="">All Locations</option>
-                            <option value="Manželské internáty">Manželské internáty</option>
-                            <option value="Štúrak">Štúrak</option>
-                            <option value="Átriáky">Átriáky</option>
-                        </select>
-                        <div className="flex items-center gap-2">
-                            <span>Minimum Rating:</span>
-                            <select
-                                name="rating"
-                                value={filters.rating}
-                                onChange={handleFilterChange}
-                                className="border border-gray-300 rounded-md p-3 focus:ring-green-500 focus:border-green-500"
-                            >
-                                <option value={0}>All</option>
-                                <option value={1}>1 Star</option>
-                                <option value={2}>2 Stars</option>
-                                <option value={3}>3 Stars</option>
-                                <option value={4}>4 Stars</option>
-                                <option value={5}>5 Stars</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch = event.recipe?.title?.toLowerCase().includes(filters.search.toLowerCase()) || false;
+    const matchesDate = !filters.date || event.date === filters.date;
+    return matchesSearch && matchesDate;
+  });
 
-                <div className="grid grid-cols-3 gap-3">
-                    {filteredEvents.map((event) => (
-                        <div key={event.id} className="bg-white shadow-md rounded-lg p-6 flex flex-col">
-                        <img
-                            src={event.recipe.image}
-                            alt={event.recipe.title}
-                            className="rounded-lg object-cover h-40 w-full mb-4"
-                        />
-                        <h2 className="text-lg font-semibold" style={{ color: '#3D9879' }}>
-                            {event.recipe.title}
-                        </h2>
-                        <p className="text-sm text-gray-500">{event.recipe.description}</p>
-                        <p className="text-sm text-gray-500">
-                            Date: {event.date} | Duration: {event.time_range}
-                        </p>
-                        <p className="text-sm text-gray-500">Max Attendees: {event.max_attendees}</p>
-                        <p className="text-sm text-gray-500">Registered: {event.registered_attendees}</p>
+  const handleJoinEvent = async (eventId) => {
+    try {
+      const response = await fetch(`https://finalwork-1093442293034.europe-central2.run.appapi/join-event/${eventId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: userName }),
+      });
 
-                        <div className="flex mt-4 gap-4">
-                            <button
-                            className="flex-1 bg-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300"
-                            style={{ color: '#3D9879' }}
-                            >
-                            More Info
-                            </button>
-                            <button
-                            className="flex-1 font-semibold py-2 px-4 rounded-lg hover:bg-green-600"
-                            style={{ backgroundColor: '#3D9879', color: 'white' }}
-                            >
-                            Join
-                            </button>
-                        </div>
-                        </div>
-                    ))}
-                </div>
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join event');
+      }
 
+      const updatedEvent = await response.json();
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...updatedEvent, recipe: { ...event.recipe, image: event.recipe.image || updatedEvent.recipe.image } }
+            : event
+        )
+      );
 
-            </main>
-        </div>
-    );
+      setSuccessMsg('Successfully joined the event!');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error('Error joining event:', err);
+      setError(err.message || 'Error joining the event.');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const handleLeaveEvent = async (eventId) => {
+    try {
+      const response = await fetch(`https://finalwork-1093442293034.europe-central2.run.appapi/leave-event/${eventId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: userName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to leave event');
+      }
+
+      const updatedEvent = await response.json();
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...updatedEvent, recipe: { ...event.recipe, image: event.recipe.image || updatedEvent.recipe.image } }
+            : event
+        )
+      );
+
+      setSuccessMsg('Successfully left the event!');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error('Error leaving event:', err);
+      setError(err.message || 'Error leaving the event.');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-green-50">
+      <Navbar />
+      <main className="max-w-7xl mx-auto px-6 py-10" style={{ marginTop: '80px' }}>
+        <section className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-green-800 mb-4">Discover and Join Events</h1>
+          <p className="text-gray-700 text-lg">Use filters to find events that match your interests and join them effortlessly.</p>
+        </section>
+
+        <section className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-xl font-semibold text-green-700 mb-4">Filter Events</h2>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label htmlFor="search" className="block text-gray-700 font-medium mb-2">Search</label>
+              <input
+                type="text"
+                id="search"
+                name="search"
+                value={filters.search}
+                onChange={handleFilterChange}
+                placeholder="Search by recipe title"
+                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-green-500 focus:border-green-500"
+              />
+              <p className="text-sm text-gray-500 mt-1">Enter keywords to search for specific recipes.</p>
+            </div>
+            <div className="flex-1">
+              <label htmlFor="date" className="block text-gray-700 font-medium mb-2">Date</label>
+              <input
+                type="date"
+                id="date"
+                name="date"
+                value={filters.date}
+                onChange={handleFilterChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-green-500 focus:border-green-500"
+              />
+              <p className="text-sm text-gray-500 mt-1">Filter events happening on a specific date.</p>
+            </div>
+            <button
+              onClick={handleClearFilters}
+              className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-500"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </section>
+
+        {successMsg && <Success msg={successMsg} />}
+        {error && <Alert msg={error} />}
+
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {filteredEvents.map((event) => (
+            <div key={event.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200">
+              <img
+                src={event.recipe.image || 'https://via.placeholder.com/150'}
+                alt={event.recipe.title}
+                className="rounded-lg object-cover h-40 w-full mb-4"
+              />
+              <h2 className="text-lg font-semibold text-green-700 mb-2">{event.recipe.title}</h2>
+              <p className="text-gray-600 mb-2">{event.recipe.description}</p>
+              <p className="text-sm text-gray-500 mb-1">📅 Date: {event.date}</p>
+              <p className="text-sm text-gray-500 mb-4">
+                👥 Max Attendees: {event.max_attendees} | Registered: {event.registered_attendees}
+              </p>
+              <div className="flex justify-between">
+                <button
+                  className="text-green-700 font-semibold hover:underline"
+                  onClick={() => setSelectedEvent(event)}
+                >
+                  More Info
+                </button>
+                {isLoggedIn && (
+                  event.joined_users.includes(userId) ? (
+                    <button
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                      onClick={() => handleLeaveEvent(event.id)}
+                    >
+                      Leave
+                    </button>
+                  ) : (
+                    <button
+                      className="bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800"
+                      onClick={() => handleJoinEvent(event.id)}
+                    >
+                      Join
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          ))}
+        </section>
+        {selectedEvent && (
+          <EventDetailsModal
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
+      </main>
+    </div>
+  );
 }

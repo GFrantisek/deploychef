@@ -27,7 +27,7 @@ export default function Register() {
     uploadData.append('password', password);
 
     try {
-        const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/register/", {
+        const response = await fetch("https://finalwork-1093442293034.europe-central2.run.appapi/register/", {
             method: 'POST',
             body: uploadData
         });
