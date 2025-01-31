@@ -6,7 +6,7 @@ import {legacy_createStore as createStore} from 'redux'
 import {Provider} from 'react-redux';
 
 const store = createStore(root);
-
+// pain
 function App() {
   return (
     <Provider store={store}>
