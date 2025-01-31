@@ -102,7 +102,7 @@ const RecipeForm = () => {
         formData.append("image", recipe.photo);
       }
 
-      const response = await fetch("https://finalwork-1093442293034.europe-central2.run.appapi/create-recipe/", {
+      const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/create-recipe/", {
         method: "POST",
         body: formData,
       });

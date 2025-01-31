@@ -116,7 +116,7 @@ export default function CreateEvent() {
     useEffect(() => {
         const fetchRecipes = async () => {
             try {
-                const response = await fetch("https://finalwork-1093442293034.europe-central2.run.appapi/recipes/");
+                const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/recipes/");
                 if (!response.ok) {
                     throw new Error("Failed to fetch recipes");
                 }
@@ -180,7 +180,7 @@ export default function CreateEvent() {
         };
 
         try {
-            const response = await fetch("https://finalwork-1093442293034.europe-central2.run.appapi/create-event/", {
+            const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/create-event/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

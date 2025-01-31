@@ -39,7 +39,7 @@ export default function Login() {
     uploadData.append("password", password);
   
     try {
-      const response = await fetch("https://finalwork-1093442293034.europe-central2.run.appapi/authenticate/", {
+      const response = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/authenticate/", {
         method: "POST",
         body: uploadData,
       });
@@ -55,7 +55,7 @@ export default function Login() {
       const authData = await response.json();
       console.log("Logged in successfully!", authData);
   
-      const userResponse = await fetch("https://finalwork-1093442293034.europe-central2.run.appapi/users/"); // for setting up the ID since the backend is not returning anything (security)
+      const userResponse = await fetch("https://finalwork-1093442293034.europe-central2.run.app/api/users/"); // for setting up the ID since the backend is not returning anything (security)
       if (!userResponse.ok) {
         throw new Error("Failed to fetch user data");
       }

@@ -10,7 +10,7 @@ function EventDetailsModal({ event, onClose }) {
   useEffect(() => {
     const fetchUsernames = async () => {
       try {
-        const response = await fetch('https://finalwork-1093442293034.europe-central2.run.appapi/users/');
+        const response = await fetch('https://finalwork-1093442293034.europe-central2.run.app/api/users/');
         if (!response.ok) throw new Error('Failed to fetch usernames');
         const users = await response.json();
 
@@ -114,7 +114,7 @@ export default function JoinEventPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('https://finalwork-1093442293034.europe-central2.run.appapi/events/');
+        const response = await fetch('https://finalwork-1093442293034.europe-central2.run.app/api/events/');
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
@@ -150,7 +150,7 @@ export default function JoinEventPage() {
 
   const handleJoinEvent = async (eventId) => {
     try {
-      const response = await fetch(`https://finalwork-1093442293034.europe-central2.run.appapi/join-event/${eventId}/`, {
+      const response = await fetch(`https://finalwork-1093442293034.europe-central2.run.app/api/join-event/${eventId}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ export default function JoinEventPage() {
 
   const handleLeaveEvent = async (eventId) => {
     try {
-      const response = await fetch(`https://finalwork-1093442293034.europe-central2.run.appapi/leave-event/${eventId}/`, {
+      const response = await fetch(`https://finalwork-1093442293034.europe-central2.run.app/api/leave-event/${eventId}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
